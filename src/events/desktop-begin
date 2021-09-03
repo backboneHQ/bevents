@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Triggered during the initialization of a desktop session (KDE/gnome):
+#
+# Category:
+# - onFirstTime: runs the scripts only the first time by checking if $BSYS_LOCAL_DATA
+# has not being created yet
+# - onEveryTime: runs scripts every time a graphical desktop begins (in case of onFirstTime scenario
+# the scripts are is still executed after that)
+#
+# Host type:
+# defined as a child of the category, it tells the type of host it should
+# be executed. This is done by reading the env var $BSYS_HOST_TYPE. In case a script
+# is meant to be executed in any host then place it under "all" (rather then duplicating it
+# accross all hosts...)
+#
+# Script conventions:
+# - make sure the scripts have the shebang (#!) and are set as executable.
+# - a script named as "main" is executed first than the other scritps
+
+# current directory
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# sourcing function used for the execution of the scripts
+source "$dir/aux/execScripts"
+
+# building categories
+categories=""
+if ! [[ -d "$BSYS_LOCAL_DATA" ]]; then
+  categories="onFirstTime"
+
+  # making the folder, so next time it's not going to be flagged
+  # as first time login
+  mkdir -p $BSYS_LOCAL_DATA
+fi
+categories="$categories onEveryTime"
+
+# executing scripts
+for category in $categories ; do
+  allScriptPath="$BEVENTS_CONFIG_ROOT/events/desktop-begin/$category/all/$BSYS_OS/$BSYS_OS_VERSION"
+  hostTypeScriptPath="$BEVENTS_CONFIG_ROOT/events/desktop-begin/$category/$BSYS_HOST_TYPE/$BSYS_OS/$BSYS_OS_VERSION"
+
+  execScripts "$allScriptPath" "$hostTypeScriptPath"
+done

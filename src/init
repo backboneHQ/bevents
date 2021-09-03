@@ -1,0 +1,22 @@
+#!/bin/bash
+
+#
+#          ___..----'---`----..___
+#          ===================================_
+#            `---.._______..---'.        -_ _  _______________
+#                                \ _______ (_||__)____________)
+#                         *----   -_          _______\_____\
+#                                   -________/
+#
+#
+# initialize backbone events
+
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# avoiding to prepended to the system path for every single bash session by making
+# sure bin is not included to the path yet.
+beventsBinPath="$dir/bin"
+if ! [[ "$BEVENTS_BIN_PATH" == "$beventsBinPath" && "$PATH" == "$BEVENTS_BIN_PATH:$PATH" ]]; then
+    export BEVENTS_BIN_PATH=$beventsBinPath
+    export PATH="$BEVENTS_BIN_PATH:$PATH"
+fi

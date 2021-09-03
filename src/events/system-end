@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Triggered during shutdown as root:
+#
+# Host type:
+# defined as a child of the category, it tells the type of host it should
+# be executed. This is done by reading the env var $BSYS_HOST_TYPE. In case a script
+# is meant to be executed in any host then place it under "all" (rather then duplicating it
+# accross all hosts...)
+#
+# Script conventions:
+# - make sure the scripts have the shebang (#!) and are set as executable.
+# - a script named as "main" is executed first than the other scritps
+
+# current directory
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# sourcing function used for the execution of the scripts
+source "$dir/aux/execScripts"
+
+# making sure bevents is running as root user
+if [[ $EUID -ne 0 ]]; then
+  echo "system-end: event requires root user" >&2
+  exit 1
+fi
+
+allScriptPath="$BEVENTS_CONFIG_ROOT/events/system-end/all/$BSYS_OS/$BSYS_OS_VERSION"
+hostTypeScriptPath="$BEVENTS_CONFIG_ROOT/events/system-end/$BSYS_HOST_TYPE/$BSYS_OS/$BSYS_OS_VERSION"
+
+# executing scripts
+execScripts "$allScriptPath" "$hostTypeScriptPath"

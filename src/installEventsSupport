@@ -1,0 +1,110 @@
+#!/bin/bash
+
+usage="$(basename "$0") [-h] -- installs support for bevents.
+
+where:
+    -h/--help           show this help text
+    -r/--release-type   release type you want to install the event: alpha beta stable. Same information defined by the BBASE_VERSION env (default: stable)
+    -c/--core-config    location where the core config is localized under backbone, same information defined by the BACKBONE_CORE_CONFIG env
+    -u/--backbone-root     root location for backbone, same information defined by the BACKBONE_ROOT env
+    -d/--backbone-dev-root dev root location for backbone, same information defined by the BACKBONE_DEV_ROOT env (optional)"
+
+releaseType="stable"
+coreConfig=""
+backboneRoot=""
+backboneDevRoot=""
+while [[ $# -gt 0 ]]
+do
+  key="$1"
+
+  case $key in
+      -h|--help)
+      echo "$usage"
+      exit 1
+      ;;
+      -r|--release-type)
+      releaseType="$2"
+      shift
+      ;;
+      -c|--core-config)
+      coreConfig="$2"
+      shift
+      ;;
+      -u|--backbone-root)
+      backboneRoot="$2"
+      shift
+      ;;
+      -d|--backbone-dev-root)
+      backboneDevRoot="$2"
+      shift
+      ;;
+      *)
+          # unknown option
+      ;;
+  esac
+  shift
+done
+
+# checking if user is root
+if [[ $EUID -ne 0 ]]; then
+   echo "The installation requires root (sudo ./installEventsSupport)!" >&2
+   exit 1
+fi
+
+# validating arguments
+releaseType="${releaseType,,}"
+useReleaseType=""
+if [[ "$releaseType" == "alpha" || "$releaseType" == "stable" || "$releaseType" == "beta" ]]; then
+  useReleaseType="$releaseType"
+fi
+
+if [[ -z "$useReleaseType" ]]; then
+  echo "Invalid release type: $releaseType" >&2
+  exit 1
+fi
+
+if [[ -z "$backboneRoot" ]]; then
+  echo "-u/--backbone-root cannot be empty!" >&2
+  exit 1
+fi
+
+if [[ -z "$coreConfig" ]]; then
+  echo "-c/--core-config cannot be empty!" >&2
+  exit 1
+fi
+
+# installing backbone events service
+echo "Installing service: /etc/systemd/system/backbone-system.service"
+cat <<EOT > /etc/systemd/system/backbone-system.service
+[Unit]
+Description=backbone system events
+Before=display-manager.service
+Wants=animism-pipe.mount
+After=animism-pipe.mount
+
+[Service]
+Environment="BACKBONE_SYSTEM_SERVICE=1"
+Type=oneshot
+User=root
+ExecStart=$backboneRoot/core/bevents/$useReleaseType/events/aux/execSystemEvent system-begin --release-type "$useReleaseType" --core-config "$coreConfig" --backbone-root "$backboneRoot" --backbone-dev-root "$backboneDevRoot"
+ExecStop=$backboneRoot/core/bevents/$useReleaseType/events/aux/execSystemEvent system-end --release-type "$useReleaseType" --core-config "$coreConfig" --backbone-root "$backboneRoot" --backbone-dev-root "$backboneDevRoot"
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOT
+
+# updating systemd
+systemctl disable backbone-system.service
+systemctl --system daemon-reload
+
+# making enabled during startup
+systemctl enable backbone-system.service
+
+# the desktop-begin event is triggered by a x11 session
+# config
+cat <<EOT > /etc/X11/Xsession.d/56backbone
+bash --init-file <(echo "export BACKBONE_DESKTOP_SERVICE=1; source ~/.bashrc; urunevent desktop-begin &") -i ""
+EOT
+
+echo "DONE"

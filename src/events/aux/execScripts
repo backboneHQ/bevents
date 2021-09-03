@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Auxiliary function used to run the executables under the input paths.
+# A script named as "main" is executed first than the other scripts
+# under the same path
+function execScripts() {
+  local scriptPaths="$@"
+
+  for scriptPath in $scriptPaths ; do
+
+    # checking if the directory exists
+    if ! [ -d "$scriptPath" ]; then
+      continue
+    fi
+
+    # we want to execute a "main" script first, then everything else after that
+    for scriptOrder in "main" "all" ; do
+      for executable in $scriptPath/* ; do
+
+        # making sure we are executing the main script first
+        executableBaseName=$(basename $executable)
+        if [[ "$executableBaseName" != "main" && "$scriptOrder" == "main" ]]; then
+          continue
+        # also, preventing the execution of the main script again when
+        # everything else has been executed
+        elif [[ "$executableBaseName" == "main" && "$scriptOrder" == "all" ]]; then
+          continue
+        fi
+
+        # making sure it's an executable and executing it
+        if [[ -f "$executable" &&  -x "$executable" ]]; then
+          echo "executing $executable"
+          $executable & disown
+        fi
+      done
+    done
+  done
+}

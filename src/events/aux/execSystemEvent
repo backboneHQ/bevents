@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# This script is triggered by the service "backbone-system"
+# which is installed through "systemInstall". It runs the
+# event by creating a temporary backbone environment
+
+event="$1"
+releaseType=""
+coreConfig=""
+backboneRoot=""
+backboneDevRoot=""
+while [[ $# -gt 0 ]]
+do
+  key="$1"
+
+  case $key in
+      -r|--release-type)
+      releaseType="$2"
+      shift
+      ;;
+      -c|--core-config)
+      coreConfig="$2"
+      shift
+      ;;
+      -u|--backbone-root)
+      backboneRoot="$2"
+      shift
+      ;;
+      -d|--backbone-dev-root)
+      backboneDevRoot="$2"
+      shift
+      ;;
+      *)
+          # unknown option
+      ;;
+  esac
+  shift
+done
+
+if [[ -z "$event" ]]; then
+  echo "error: event name has not been passed as first argument" >&2
+  exit 1
+elif [[ -z "$backboneRoot" ]]; then
+  echo "error: -u/--backbone-root cannot be empty" >&2
+  exit 1
+elif [[ -z "$coreConfig" ]]; then
+  echo "error: -c/--core-config cannot be empty" >&2
+  exit 1
+elif [[ -z "$releaseType" ]]; then
+  echo "error: -r/--release-type cannot be empty" >&2
+  exit 1
+fi
+
+# creating backbone environment
+export BACKBONE_ROOT=$backboneRoot
+export BACKBONE_DEV_ROOT=$backboneDevRoot
+export BACKBONE_CORE_CONFIG=$coreConfig
+export BBASE_VERSION=$releaseType
+source $BACKBONE_ROOT/core/bbase/$BBASE_VERSION/env
+source $BACKBONE_ROOT/core/bbase/$BBASE_VERSION/init
+
+# running event
+urunevent $event

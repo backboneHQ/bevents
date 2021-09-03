@@ -1,0 +1,44 @@
+#!/bin/bash
+
+usage="$(basename "$0") <event> [-h] -- runs a backbone event (login, root, ...) through bevents.
+
+where:
+    -h/--help   show this help text
+    -e/--event  event name that should triggered (login, logout, root...)"
+
+event="$1"
+while [[ $# -gt 0 ]]
+do
+  key="$1"
+
+  case $key in
+      -h|--help)
+      echo "$usage"
+      exit 1
+      ;;
+      *)
+          # unknown option
+      ;;
+  esac
+  shift
+done
+
+# checking if event has been supplied
+if [[ -z "$event" ]]; then
+  echo "error: event name cannot be empty" >&2
+  exit 1
+fi
+
+# current directory
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# resolving event path
+eventPath="$(dirname $dir)/events/$event"
+
+# running event
+if [[ -x "$eventPath" ]]; then
+  exec $eventPath
+else
+  echo "error: invalid event $event" >&2
+  exit 1
+fi
