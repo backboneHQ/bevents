@@ -1,4 +1,5 @@
 ## bevents
+Events module
 
 ### Installing support for events
 
